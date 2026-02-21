@@ -158,17 +158,6 @@ h3 {
   font-size: 0.92rem;
 }
 
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-
-.check-row input {
-  transform: translateY(1px);
-}
-
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -206,9 +195,7 @@ button[disabled] {
 
 .stage-top {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px 14px;
+  gap: 10px;
   align-items: center;
   margin-bottom: 8px;
 }
@@ -217,30 +204,6 @@ button[disabled] {
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.02em;
-}
-
-.heat-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #ffdba8;
-  font-size: 0.86rem;
-}
-
-.heat-bar {
-  width: 170px;
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 215, 142, 0.3);
-}
-
-#heatFill {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, #ffd166, #ff8c42, #ff3b30);
-  transition: width 0.34s ease;
 }
 
 .board-wrap {
@@ -313,12 +276,12 @@ button[disabled] {
 }
 
 .result-box.revealed.win .tag-rect {
-  fill: rgba(48, 209, 88, 0.24);
-  stroke: rgba(110, 255, 148, 0.92);
+  fill: rgba(26, 42, 65, 0.72);
+  stroke: rgba(141, 167, 201, 0.78);
 }
 
 .result-box.revealed.win .tag-text {
-  fill: #d2ffdd;
+  fill: #c7d7ed;
 }
 
 .result-box.revealed.lose .tag-rect {
@@ -400,14 +363,5 @@ button[disabled] {
   .setup-panel,
   .stage-panel {
     padding: 11px;
-  }
-
-  .heat-wrap {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .heat-bar {
-    width: min(56vw, 220px);
   }
 }

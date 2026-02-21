@@ -3,13 +3,11 @@ const svgNS = "http://www.w3.org/2000/svg";
 const ui = {
   nameInput: document.getElementById("nameInput"),
   winnerSelect: document.getElementById("winnerSelect"),
-  winnerLast: document.getElementById("winnerLast"),
   secretPanel: document.getElementById("secretPanel"),
   generateBtn: document.getElementById("generateBtn"),
   startBtn: document.getElementById("startBtn"),
   ladderSvg: document.getElementById("ladderSvg"),
   statusText: document.getElementById("statusText"),
-  heatFill: document.getElementById("heatFill"),
   flashOverlay: document.getElementById("flashOverlay"),
   confettiLayer: document.getElementById("confettiLayer"),
   credit: document.getElementById("credit"),
@@ -18,7 +16,6 @@ const ui = {
 const state = {
   names: [],
   winnerIndex: 0,
-  winnerLast: true,
   board: null,
   rungs: [],
   rowMap: [],
@@ -72,7 +69,6 @@ function refreshWinnerOptions() {
     opt.textContent = "参加者を入力";
     ui.winnerSelect.append(opt);
     ui.winnerSelect.disabled = true;
-    ui.winnerLast.disabled = true;
     return;
   }
 
@@ -83,7 +79,6 @@ function refreshWinnerOptions() {
     ui.winnerSelect.append(opt);
   });
   ui.winnerSelect.disabled = !state.secretUnlocked;
-  ui.winnerLast.disabled = !state.secretUnlocked;
   ui.winnerSelect.value =
     Number(prev) >= 0 && Number(prev) < names.length ? prev : "0";
 }
@@ -94,7 +89,6 @@ function setSecretControlsEnabled(enabled) {
   } else {
     ui.winnerSelect.disabled = !enabled;
   }
-  ui.winnerLast.disabled = !enabled;
 }
 
 function onSecretCommandKeydown(event) {
@@ -159,7 +153,6 @@ function generateShow() {
     Math.max(Number(ui.winnerSelect.value) || 0, 0),
     names.length - 1
   );
-  state.winnerLast = ui.winnerLast.checked;
 
   const board = createBoardSpec(names.length);
   const ladder = createLadder(board);
@@ -171,7 +164,6 @@ function generateShow() {
   state.bottomItems = buildBottomItems();
 
   renderBoard();
-  updateHeat(0);
   setStatus("あみだを生成しました。演出スタートで抽選を開始します。");
   ui.startBtn.disabled = false;
 }
@@ -348,7 +340,6 @@ async function startShow() {
   state.running = true;
   ui.generateBtn.disabled = true;
   ui.startBtn.disabled = true;
-  updateHeat(0);
   resetResults();
   clearTraces();
   flash();
@@ -370,21 +361,13 @@ async function startShow() {
 
     setActiveTop(idx);
     setStatus(`${actor} さんのルートを追跡中...`);
-    updateHeat(Math.floor(((step + 1) / (order.length + 1)) * 96));
 
-    const endCol = await animateTrace(
-      idx,
-      isWinner ? "#82ff8b" : "#8fd1ff",
-      isWinner ? 3200 : 2100
-    );
+    const endCol = await animateTrace(idx, "#8fd1ff", 2300);
     revealResult(endCol);
 
     if (isWinner) {
-      updateHeat(100);
-      flash();
-      confettiBurst();
-      setStatus(`🎉 当選は ${winnerName} さん！`);
-      await wait(1300);
+      setStatus(`${actor} さんが当たり！残りを確認中...`);
+      await wait(800);
     } else {
       setStatus(`${actor} さんは ${state.bottomItems[endCol].text}`);
       await wait(700);
@@ -392,6 +375,10 @@ async function startShow() {
   }
 
   setActiveTop(-1);
+  flash();
+  confettiBurst();
+  setStatus(`抽選終了。今回の暴露相手は ${winnerName} さん！`);
+  window.alert(`今回の暴露相手は....「${winnerName}」に決定！！`);
   ui.generateBtn.disabled = false;
   ui.startBtn.disabled = false;
   state.running = false;
@@ -399,9 +386,7 @@ async function startShow() {
 
 function makeRevealOrder() {
   const all = state.names.map((_, i) => i);
-  if (!state.winnerLast) return shuffle(all);
-  const losers = all.filter((i) => i !== state.winnerIndex);
-  return [...shuffle(losers), state.winnerIndex];
+  return shuffle(all);
 }
 
 function resetResults() {
@@ -481,11 +466,6 @@ async function fakeSpotlight() {
 
 function setStatus(text) {
   ui.statusText.textContent = text;
-}
-
-function updateHeat(value) {
-  const v = Math.min(100, Math.max(0, value));
-  ui.heatFill.style.width = `${v}%`;
 }
 
 function flash() {
