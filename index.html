@@ -40,6 +40,16 @@
           <h3>管理者モード</h3>
           <label for="winnerSelect">固定当選者（出来レース）</label>
           <select id="winnerSelect"></select>
+          <label for="winnerFromLastInput">
+            当選者を「最後から何番目」に追跡するか
+          </label>
+          <input
+            id="winnerFromLastInput"
+            type="number"
+            min="1"
+            value="1"
+            inputmode="numeric"
+          />
         </div>
         <div class="button-row">
           <button id="generateBtn" class="primary-btn" type="button">

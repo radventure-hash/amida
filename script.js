@@ -3,6 +3,7 @@ const svgNS = "http://www.w3.org/2000/svg";
 const ui = {
   nameInput: document.getElementById("nameInput"),
   winnerSelect: document.getElementById("winnerSelect"),
+  winnerFromLastInput: document.getElementById("winnerFromLastInput"),
   secretPanel: document.getElementById("secretPanel"),
   generateBtn: document.getElementById("generateBtn"),
   startBtn: document.getElementById("startBtn"),
@@ -16,6 +17,7 @@ const ui = {
 const state = {
   names: [],
   winnerIndex: 0,
+  winnerFromLast: 1,
   board: null,
   rungs: [],
   rowMap: [],
@@ -33,6 +35,8 @@ const state = {
 };
 
 const secretCommands = ["uraopen", "/admin"];
+const traceBaseColor = "#8fd1ff";
+const traceActiveColor = "#ffd166";
 
 document.addEventListener("keydown", onSecretCommandKeydown);
 ui.credit.addEventListener("click", onSecretActionClick);
@@ -62,6 +66,7 @@ function refreshWinnerOptions() {
   const names = parseNames();
   const prev = ui.winnerSelect.value;
   ui.winnerSelect.innerHTML = "";
+  updateWinnerFromLastBounds(names.length);
 
   if (!names.length) {
     const opt = document.createElement("option");
@@ -69,6 +74,7 @@ function refreshWinnerOptions() {
     opt.textContent = "参加者を入力";
     ui.winnerSelect.append(opt);
     ui.winnerSelect.disabled = true;
+    ui.winnerFromLastInput.disabled = true;
     return;
   }
 
@@ -79,6 +85,7 @@ function refreshWinnerOptions() {
     ui.winnerSelect.append(opt);
   });
   ui.winnerSelect.disabled = !state.secretUnlocked;
+  ui.winnerFromLastInput.disabled = !state.secretUnlocked;
   ui.winnerSelect.value =
     Number(prev) >= 0 && Number(prev) < names.length ? prev : "0";
 }
@@ -86,9 +93,20 @@ function refreshWinnerOptions() {
 function setSecretControlsEnabled(enabled) {
   if (!parseNames().length) {
     ui.winnerSelect.disabled = true;
+    ui.winnerFromLastInput.disabled = true;
   } else {
     ui.winnerSelect.disabled = !enabled;
+    ui.winnerFromLastInput.disabled = !enabled;
   }
+}
+
+function updateWinnerFromLastBounds(count) {
+  const max = Math.max(1, count || 1);
+  const value = Number(ui.winnerFromLastInput.value) || 1;
+  const clamped = Math.min(Math.max(value, 1), max);
+  ui.winnerFromLastInput.min = "1";
+  ui.winnerFromLastInput.max = String(max);
+  ui.winnerFromLastInput.value = String(clamped);
 }
 
 function onSecretCommandKeydown(event) {
@@ -152,6 +170,10 @@ function generateShow() {
   state.winnerIndex = Math.min(
     Math.max(Number(ui.winnerSelect.value) || 0, 0),
     names.length - 1
+  );
+  state.winnerFromLast = Math.min(
+    Math.max(Number(ui.winnerFromLastInput.value) || 1, 1),
+    names.length
   );
 
   const board = createBoardSpec(names.length);
@@ -362,7 +384,7 @@ async function startShow() {
     setActiveTop(idx);
     setStatus(`${actor} さんのルートを追跡中...`);
 
-    const endCol = await animateTrace(idx, "#8fd1ff", 2300);
+    const endCol = await animateTrace(idx, 2300);
     revealResult(endCol);
 
     if (isWinner) {
@@ -386,7 +408,13 @@ async function startShow() {
 
 function makeRevealOrder() {
   const all = state.names.map((_, i) => i);
-  return shuffle(all);
+  const losers = shuffle(all.filter((i) => i !== state.winnerIndex));
+  const insertIndex = Math.max(
+    0,
+    Math.min(losers.length, state.names.length - state.winnerFromLast)
+  );
+  losers.splice(insertIndex, 0, state.winnerIndex);
+  return losers;
 }
 
 function resetResults() {
@@ -416,12 +444,12 @@ function setActiveTop(index) {
   });
 }
 
-function animateTrace(idx, color, duration) {
+function animateTrace(idx, duration) {
   const pathData = state.paths[idx];
   const path = createSvg("path", {
     d: pathData.d,
     class: "trace-path",
-    stroke: color,
+    stroke: traceActiveColor,
   });
   state.traceLayer.append(path);
 
@@ -438,7 +466,10 @@ function animateTrace(idx, color, duration) {
     }
   );
 
-  return anim.finished.then(() => pathData.endCol);
+  return anim.finished.then(() => {
+    path.setAttribute("stroke", traceBaseColor);
+    return pathData.endCol;
+  });
 }
 
 async function countdown() {
