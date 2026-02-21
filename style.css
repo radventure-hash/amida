@@ -131,16 +131,6 @@ textarea {
   margin-bottom: 10px;
 }
 
-.secret-toggle {
-  border: 1px solid rgba(229, 190, 78, 0.5);
-  background: rgba(255, 183, 3, 0.12);
-  color: #ffe4a4;
-  border-radius: 999px;
-  font: inherit;
-  padding: 6px 14px;
-  cursor: pointer;
-}
-
 .secret-panel {
   overflow: hidden;
   max-height: 0;
@@ -251,34 +241,6 @@ button[disabled] {
   height: 100%;
   background: linear-gradient(90deg, #ffd166, #ff8c42, #ff3b30);
   transition: width 0.34s ease;
-}
-
-.ticker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  border: 1px solid rgba(150, 192, 248, 0.3);
-  border-radius: 999px;
-  padding: 5px 10px;
-  background: rgba(3, 13, 30, 0.5);
-}
-
-.ticker-label {
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  background: #ff375f;
-  color: #fff;
-  border-radius: 999px;
-  padding: 4px 8px;
-}
-
-#tickerText {
-  margin: 0;
-  font-size: 0.88rem;
-  color: #d8e7ff;
-  min-height: 1.2em;
 }
 
 .board-wrap {

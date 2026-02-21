@@ -26,22 +26,15 @@
       <section class="panel setup-panel">
         <div class="panel-head">
           <h2>参加者設定</h2>
-          <button id="secretToggle" class="secret-toggle" type="button">
-            裏設定
-          </button>
         </div>
         <label for="nameInput">名前（1行に1人、2〜10名）</label>
         <textarea
           id="nameInput"
           placeholder="例）
-広田
-青木
-野上
-横田
-梶間
-椎名
-長濱
-竹内"
+佐藤
+田中
+鈴木
+高橋"
         ></textarea>
         <div id="secretPanel" class="secret-panel" aria-hidden="true">
           <h3>管理者モード</h3>
@@ -72,10 +65,6 @@
             </div>
           </div>
         </div>
-        <div class="ticker">
-          <span class="ticker-label">LIVE</span>
-          <p id="tickerText">コメント待機中...</p>
-        </div>
         <div id="boardWrap" class="board-wrap">
           <svg
             id="ladderSvg"
@@ -89,7 +78,7 @@
         </div>
       </section>
 
-      <footer class="credit">by 定例会幹事</footer>
+      <footer id="credit" class="credit">by 定例会幹事</footer>
     </main>
 
     <script src="script.js"></script>

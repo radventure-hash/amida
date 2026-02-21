@@ -4,16 +4,15 @@ const ui = {
   nameInput: document.getElementById("nameInput"),
   winnerSelect: document.getElementById("winnerSelect"),
   winnerLast: document.getElementById("winnerLast"),
-  secretToggle: document.getElementById("secretToggle"),
   secretPanel: document.getElementById("secretPanel"),
   generateBtn: document.getElementById("generateBtn"),
   startBtn: document.getElementById("startBtn"),
   ladderSvg: document.getElementById("ladderSvg"),
   statusText: document.getElementById("statusText"),
   heatFill: document.getElementById("heatFill"),
-  tickerText: document.getElementById("tickerText"),
   flashOverlay: document.getElementById("flashOverlay"),
   confettiLayer: document.getElementById("confettiLayer"),
+  credit: document.getElementById("credit"),
 };
 
 const state = {
@@ -30,36 +29,16 @@ const state = {
   resultGroups: [],
   resultTexts: [],
   traceLayer: null,
-  tickerTimer: null,
+  secretUnlocked: false,
+  secretCommandBuffer: "",
+  secretActionClicks: 0,
+  secretActionTimer: null,
 };
 
-const idleTicker = [
-  "配信準備OK。運命の1人を待機中...",
-  "コメント: 「これは盛り上がる予感！」",
-  "コメント: 「誰が当たるんだろう？」",
-  "コメント: 「最後まで目が離せない！」",
-];
+const secretCommands = ["uraopen", "/admin"];
 
-const liveTicker = [
-  "コメント: 「うおおお、ここで分岐!?」",
-  "コメント: 「この演出めっちゃ良い」",
-  "コメント: 「次が本命だと思う」",
-  "コメント: 「心拍数が上がってきた」",
-  "コメント: 「まさかの展開きた」",
-  "コメント: 「最後の1人までわからない」",
-  "コメント: 「これは神回」",
-];
-
-const loseLabels = [
-  "惜しい！",
-  "次回チャンス",
-  "拍手賞",
-  "ドキドキ賞",
-  "もう一歩",
-  "あと少し",
-];
-
-ui.secretToggle.addEventListener("click", toggleSecretPanel);
+document.addEventListener("keydown", onSecretCommandKeydown);
+ui.credit.addEventListener("click", onSecretActionClick);
 ui.nameInput.addEventListener("input", refreshWinnerOptions);
 ui.generateBtn.addEventListener("click", generateShow);
 ui.startBtn.addEventListener("click", startShow);
@@ -70,12 +49,7 @@ function bootstrap() {
   ui.nameInput.value = "佐藤\n田中\n鈴木\n高橋";
   refreshWinnerOptions();
   renderEmptyBoard();
-  startIdleTicker();
-}
-
-function toggleSecretPanel() {
-  const opened = ui.secretPanel.classList.toggle("open");
-  ui.secretPanel.setAttribute("aria-hidden", String(!opened));
+  setSecretControlsEnabled(false);
 }
 
 function parseNames() {
@@ -98,6 +72,7 @@ function refreshWinnerOptions() {
     opt.textContent = "参加者を入力";
     ui.winnerSelect.append(opt);
     ui.winnerSelect.disabled = true;
+    ui.winnerLast.disabled = true;
     return;
   }
 
@@ -107,9 +82,67 @@ function refreshWinnerOptions() {
     opt.textContent = name;
     ui.winnerSelect.append(opt);
   });
-  ui.winnerSelect.disabled = false;
+  ui.winnerSelect.disabled = !state.secretUnlocked;
+  ui.winnerLast.disabled = !state.secretUnlocked;
   ui.winnerSelect.value =
     Number(prev) >= 0 && Number(prev) < names.length ? prev : "0";
+}
+
+function setSecretControlsEnabled(enabled) {
+  if (!parseNames().length) {
+    ui.winnerSelect.disabled = true;
+  } else {
+    ui.winnerSelect.disabled = !enabled;
+  }
+  ui.winnerLast.disabled = !enabled;
+}
+
+function onSecretCommandKeydown(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key.length !== 1) return;
+
+  state.secretCommandBuffer = (
+    state.secretCommandBuffer + event.key.toLowerCase()
+  ).slice(-24);
+
+  const matched = secretCommands.find((command) =>
+    state.secretCommandBuffer.endsWith(command)
+  );
+  if (!matched) return;
+
+  state.secretCommandBuffer = "";
+  revealSecretPanel("コマンド");
+}
+
+function onSecretActionClick() {
+  state.secretActionClicks += 1;
+
+  if (state.secretActionTimer) {
+    window.clearTimeout(state.secretActionTimer);
+  }
+
+  state.secretActionTimer = window.setTimeout(() => {
+    state.secretActionClicks = 0;
+    state.secretActionTimer = null;
+  }, 1000);
+
+  if (state.secretActionClicks < 3) return;
+  state.secretActionClicks = 0;
+  window.clearTimeout(state.secretActionTimer);
+  state.secretActionTimer = null;
+  revealSecretPanel("隠し操作");
+}
+
+function revealSecretPanel(source) {
+  if (!state.secretUnlocked) {
+    state.secretUnlocked = true;
+    setSecretControlsEnabled(true);
+    if (!state.running) {
+      setStatus(`🔐 裏設定を解放しました（${source}）`);
+    }
+  }
+  ui.secretPanel.classList.add("open");
+  ui.secretPanel.setAttribute("aria-hidden", "false");
 }
 
 function generateShow() {
@@ -213,15 +246,12 @@ function buildBottomItems() {
     win: false,
   }));
   const winBottom = state.paths[state.winnerIndex].endCol;
-  const pool = shuffle([...loseLabels]);
-  let cursor = 0;
 
   for (let i = 0; i < result.length; i += 1) {
     if (i === winBottom) {
       result[i] = { text: "🎯 当たり！", win: true };
     } else {
-      result[i] = { text: pool[cursor % pool.length], win: false };
-      cursor += 1;
+      result[i] = { text: "ハズレ", win: false };
     }
   }
   return result;
@@ -322,7 +352,6 @@ async function startShow() {
   resetResults();
   clearTraces();
   flash();
-  startLiveTicker();
 
   setStatus("カウントダウン開始...");
   await countdown();
@@ -459,36 +488,6 @@ function updateHeat(value) {
   ui.heatFill.style.width = `${v}%`;
 }
 
-function startIdleTicker() {
-  stopTicker();
-  let i = 0;
-  ui.tickerText.textContent = idleTicker[0];
-  state.tickerTimer = window.setInterval(() => {
-    i = (i + 1) % idleTicker.length;
-    ui.tickerText.textContent = idleTicker[i];
-  }, 1600);
-}
-
-function startLiveTicker() {
-  stopTicker();
-  let i = 0;
-  state.tickerTimer = window.setInterval(() => {
-    const seed = liveTicker[i % liveTicker.length];
-    const randomName =
-      state.names[Math.floor(Math.random() * state.names.length)] || "";
-    const tail = Math.random() > 0.5 ? `（${randomName} 推し多数）` : "";
-    ui.tickerText.textContent = `${seed}${tail}`;
-    i += 1;
-  }, 1200);
-}
-
-function stopTicker() {
-  if (state.tickerTimer) {
-    window.clearInterval(state.tickerTimer);
-    state.tickerTimer = null;
-  }
-}
-
 function flash() {
   ui.flashOverlay.classList.remove("flash");
   void ui.flashOverlay.offsetWidth;
@@ -539,4 +538,3 @@ function shuffle(array) {
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
-
